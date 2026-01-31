@@ -1,0 +1,127 @@
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --font-primary: 'Inter', sans-serif;
+
+  /* Deep Night Theme Palette */
+  --color-primary: #F2B42D;
+  /* Main Accent: Gold */
+  --color-primary-hover: #D9A028;
+
+  --color-secondary-1: #D7425E;
+  /* Pink/Red */
+  --color-secondary-2: #DD785E;
+  /* Coral */
+  --color-secondary-3: #48A8E2;
+  /* Blue */
+  --color-secondary-4: #59ABA9;
+  /* Teal */
+
+  --color-surface: #00001A;
+  /* Base Darker Background */
+  --color-card: #00002E;
+  /* Deep Navy Card Background */
+  --color-surface-muted: rgba(255, 255, 255, 0.05);
+
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(255, 255, 255, 0.1);
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.7), 0 4px 6px -4px rgb(0 0 0 / 0.7);
+
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.hero-gradient {
+  background:
+    radial-gradient(circle at 10% 20%, rgba(242, 180, 45, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(215, 66, 94, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, #00001A 0%, #00001A 100%);
+}
+
+.blurry-blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--blob-color) 0%, transparent 70%);
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card-pop {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+}
+
+.card-pop:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.8), 0 8px 10px -6px rgb(0 0 0 / 0.8), 0 0 30px rgba(242, 180, 45, 0.2);
+  border-color: rgba(242, 180, 45, 0.4);
+}
+
+.glow-on-hover {
+  transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+  box-shadow: 0 0 25px rgba(242, 180, 45, 0.25);
+  border-color: rgba(242, 180, 45, 0.4) !important;
+}
+
+.glow-primary:hover {
+  box-shadow: 0 0 30px rgba(242, 180, 45, 0.3);
+}
+
+.glow-secondary-1:hover {
+  box-shadow: 0 0 30px rgba(215, 66, 94, 0.3);
+}
+
+.glow-secondary-2:hover {
+  box-shadow: 0 0 30px rgba(221, 120, 94, 0.3);
+}
+
+.glow-secondary-3:hover {
+  box-shadow: 0 0 30px rgba(72, 168, 226, 0.3);
+}
+
+.glow-secondary-4:hover {
+  box-shadow: 0 0 30px rgba(89, 171, 169, 0.3);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  border: 2px solid var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}

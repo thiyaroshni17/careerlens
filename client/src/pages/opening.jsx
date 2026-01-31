@@ -66,8 +66,13 @@ const Opening = () => {
 
         for (const type of types) {
             try {
-                const response = await fetch(`http://localhost:3000/careerlens/scraper/${type}-results/${uid}`);
-                newCompleted[type] = response.ok;
+                const response = await fetch(`http://127.0.0.1:3000/careerlens/scraper/${type}-results/${uid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    newCompleted[type] = data && !data.error && data.success !== false;
+                } else {
+                    newCompleted[type] = false;
+                }
             } catch {
                 newCompleted[type] = false;
             }
@@ -81,7 +86,7 @@ const Opening = () => {
         if (!userID) return;
 
         try {
-            const response = await fetch(`http://localhost:3000/careerlens/scraper/${type}-results/${userID}`);
+            const response = await fetch(`http://127.0.0.1:3000/careerlens/scraper/${type}-results/${userID}`);
             if (!response.ok) throw new Error('No saved results');
 
             const data = await response.json();
@@ -126,7 +131,7 @@ const Opening = () => {
 
         try {
             console.log(`Calling /careerlens/scraper/search-jobs-indeed with Role=${jobForm.role}, City=${jobForm.city}`);
-            const response = await fetch('http://localhost:3000/careerlens/scraper/search-jobs-indeed', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/scraper/search-jobs-indeed', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role: jobForm.role, city: jobForm.city, userID })
@@ -175,7 +180,7 @@ const Opening = () => {
         setInternshipResults(null);
 
         try {
-            const response = await fetch('http://localhost:3000/careerlens/scraper/search-internships', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/scraper/search-internships', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ city: internshipForm.city, role: internshipForm.role, userID })
@@ -224,7 +229,7 @@ const Opening = () => {
         try {
             console.log(`Starting College Search: City=${collegeForm.city}, Course=${collegeForm.course}`);
 
-            const response = await fetch('http://localhost:3000/careerlens/scraper/search-colleges', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/scraper/search-colleges', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ city: collegeForm.city, course: collegeForm.course, userID })

@@ -26,6 +26,8 @@ app.use('/careerlens/industryWorker', IndustryWorkerRouter)
 app.use('/careerlens/resume', ResumeRouter)
 app.use('/careerlens/analysis', require('./routes/analysisRoutes'))
 app.use('/careerlens/scraper', require('./routes/scraperRoutes'))
+app.use('/careerlens/habit', require('./routes/habitRoutes'))
+app.use('/careerlens/tasks', require('./routes/taskRoutes'))
 
 app.use('/uploads', express.static('uploads'))
 app.use('/', (req, res) => {

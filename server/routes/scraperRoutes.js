@@ -733,7 +733,7 @@ router.get('/jobs-results/:userID', async (req, res) => {
         if (results) {
             res.json(results);
         } else {
-            res.status(404).json({ error: 'No saved job results found' });
+            res.json({ success: false, error: 'No saved job results found' });
         }
     } catch (error) {
         console.error('[Get Jobs] Error:', error.message);
@@ -750,7 +750,7 @@ router.get('/internships-results/:userID', async (req, res) => {
         if (results) {
             res.json(results);
         } else {
-            res.status(404).json({ error: 'No saved internship results found' });
+            res.json({ success: false, error: 'No saved internship results found' });
         }
     } catch (error) {
         console.error('[Get Internships] Error:', error.message);
@@ -767,7 +767,7 @@ router.get('/colleges-results/:userID', async (req, res) => {
         if (results) {
             res.json(results);
         } else {
-            res.status(404).json({ error: 'No saved college results found' });
+            res.json({ success: false, error: 'No saved college results found' });
         }
     } catch (error) {
         console.error('[Get Colleges] Error:', error.message);
