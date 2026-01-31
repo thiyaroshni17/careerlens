@@ -110,7 +110,7 @@ const SkillAnalyzer = () => {
             const headers = { 'Content-Type': 'application/json' };
             if (token && token !== 'undefined') headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch('http://localhost:3000/careerlens/skill/aptitude', {
+            const res = await fetch('http://127.0.0.1:3000/careerlens/skill/aptitude', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ userID: userId })
@@ -173,7 +173,7 @@ const SkillAnalyzer = () => {
             const headers = { 'Content-Type': 'application/json' };
             if (token && token !== 'undefined') headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch('http://localhost:3000/careerlens/skill/games', {
+            const res = await fetch('http://127.0.0.1:3000/careerlens/skill/games', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ userID: userId })
@@ -217,7 +217,7 @@ const SkillAnalyzer = () => {
             const headers = { 'Content-Type': 'application/json' };
             if (token && token !== 'undefined') headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch('http://localhost:3000/careerlens/skill/practical', {
+            const res = await fetch('http://127.0.0.1:3000/careerlens/skill/practical', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ userID: userId })
@@ -275,7 +275,7 @@ const SkillAnalyzer = () => {
                 return acc + (aptitudeAnswers[idx] === q.correctAnswer ? 1 : 0);
             }, 0);
 
-            const res = await fetch('http://localhost:3000/careerlens/skill/finalize', {
+            const res = await fetch('http://127.0.0.1:3000/careerlens/skill/finalize', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({
@@ -649,9 +649,7 @@ const SkillAnalyzer = () => {
     );
 
     return (
-        <div className="bg-[#00002E] min-h-screen relative font-display text-white overflow-hidden flex flex-col select-none">
-            <BackgroundShapes />
-
+        <div className="min-h-full relative font-display text-white flex flex-col select-none">
             {/* Countdown Overlay */}
             {countdown !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#00002E]/80 backdrop-blur-xl animate-fade-in">
@@ -663,11 +661,7 @@ const SkillAnalyzer = () => {
                 </div>
             )}
 
-            <div className="absolute top-6 left-6 z-20">
-                <Logo />
-            </div>
-
-            <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative z-10 w-full overflow-y-auto">
+            <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative z-10 w-full">
                 {currentPhase === 'intro' && renderIntro()}
                 {currentPhase === 'aptitude' && renderAptitude()}
                 {currentPhase === 'games' && renderGames()}

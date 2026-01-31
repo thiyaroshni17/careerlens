@@ -24,6 +24,9 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.13",
     "nodemon": "^3.1.11",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "playwright": "^1.58.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }

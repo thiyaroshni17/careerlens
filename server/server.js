@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 4000
 
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
-app.use(cors({ origin: [process.env.FRONTEND_URL], credentials: true }))
+app.use(cors({ origin: [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'], credentials: true }))
 app.use(cookieparser())
 app.use('/careerlens/skill', require('./routes/skillRoutes'))
 app.use('/careerlens', Router)
@@ -25,6 +25,7 @@ app.use('/careerlens/collegeStudent', CollegeStudentRouter)
 app.use('/careerlens/industryWorker', IndustryWorkerRouter)
 app.use('/careerlens/resume', ResumeRouter)
 app.use('/careerlens/analysis', require('./routes/analysisRoutes'))
+app.use('/careerlens/scraper', require('./routes/scraperRoutes'))
 
 app.use('/uploads', express.static('uploads'))
 app.use('/', (req, res) => {

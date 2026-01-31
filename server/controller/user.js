@@ -178,6 +178,11 @@ const login = async (req, res) => {
                 const Student = require('../models/student');
                 const CollegeStudent = require('../models/collegeStudent');
                 const IndustryWorker = require('../models/industryWorker');
+                const CareerReport = require('../models/CareerReport');
+                const Assessment = require('../models/assessment');
+                const ResumeReport = require('../models/ResumeReport');
+                const Task = require('../models/Task');
+                const HabitPlan = require('../models/HabitPlan');
 
                 const hasStudent = await Student.findOne({ userID: existingUser._id });
                 const hasCollege = await CollegeStudent.findOne({ userID: existingUser._id });
@@ -524,6 +529,11 @@ const userdata = async (req, res) => {
         const Student = require('../models/student');
         const CollegeStudent = require('../models/collegeStudent');
         const IndustryWorker = require('../models/industryWorker');
+        const CareerReport = require('../models/CareerReport');
+        const Assessment = require('../models/assessment');
+        const ResumeReport = require('../models/ResumeReport');
+        const Task = require('../models/Task');
+        const HabitPlan = require('../models/HabitPlan');
 
         let profile = await Student.findOne({ userID });
         let status = 'User';
@@ -551,6 +561,80 @@ const userdata = async (req, res) => {
                 }
             }
         }
+
+        // AGGREGATE STATS
+        const stats = {
+            reports: {
+                career: 0,
+                skill: 0,
+                resume: 0,
+                social: 0
+            },
+            tasks: {
+                total: 0,
+                completed: 0,
+                pending: []
+            },
+            habits: {
+                streak: 0,
+                todayCompleted: false
+            }
+        };
+
+        // Check Reports
+        const career = await CareerReport.findOne({ userID });
+        if (career) {
+            if (career.careerAnalysis?.html) stats.reports.career = 1;
+            if (career.socialAnalysis?.html) stats.reports.social = 1;
+        }
+
+        const skill = await Assessment.findOne({ userID }).sort({ createdAt: -1 });
+        if (skill && skill.finalReport) stats.reports.skill = 1;
+
+        const resume = await ResumeReport.findOne({ userID }).sort({ generatedAt: -1 });
+        if (resume) stats.reports.resume = 1;
+
+        // Tasks
+        const tasks = await Task.find({ userID }).sort({ createdAt: -1 });
+        stats.tasks.total = tasks.length;
+        stats.tasks.completed = tasks.filter(t => t.status === 'completed').length;
+        stats.tasks.pending = tasks.filter(t => t.status === 'pending').slice(0, 3);
+
+        // Habits
+        const now = new Date();
+        const habitPlan = await HabitPlan.findOne({
+            userID,
+            month: now.getMonth() + 1,
+            year: now.getFullYear()
+        });
+        if (habitPlan && habitPlan.tasks.length > 0) {
+            const dayIdx = now.getDate() - 1;
+            stats.habits.todayCompleted = habitPlan.tasks.some(t => t.completions[dayIdx]);
+
+            // Calculate streak (simplistic current month only for now)
+            let streak = 0;
+            for (let d = dayIdx; d >= 0; d--) {
+                const dayDone = habitPlan.tasks.some(t => t.completions[d]);
+                if (dayDone) streak++;
+                else if (d < dayIdx) break; // Allow gap only if it's today and not done yet
+            }
+            stats.habits.streak = streak;
+        }
+
+        // Readiness calculation
+        // 1. Foundation (20%): 5% per core report
+        const foundationScore = (stats.reports.career + stats.reports.skill + stats.reports.resume + stats.reports.social) * 5;
+
+        // 2. Aptitude (30%): Scaled version of skill assessment score
+        const skillScore = skill && skill.finalReport?.overallScore ? (skill.finalReport.overallScore / 100) * 30 : 0;
+
+        // 3. Execution (30%): Task completion ratio
+        const taskScore = stats.tasks.total > 0 ? (stats.tasks.completed / stats.tasks.total) * 30 : 0;
+
+        // 4. Consistency (20%): Habit streak (capped at 10 days for max bonus)
+        const habitScore = Math.min((stats.habits.streak / 10) * 20, 20);
+
+        const readinessValue = Math.round(foundationScore + skillScore + taskScore + habitScore);
 
         // Standardize Profile Photo URL (Robust Healing)
         const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -581,7 +665,9 @@ const userdata = async (req, res) => {
                 status: status,
                 targetRole: targetRole,
                 ...profileDetails,
-                profilePhoto: photoUrl // Final full URL
+                profilePhoto: photoUrl, // Final full URL
+                stats: stats,
+                readiness: readinessValue
             }
         });
     } catch (e) {

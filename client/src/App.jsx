@@ -15,6 +15,8 @@ import Analysis from './pages/Analysis'
 import HabitTracker from './pages/HabitTracker'
 import Tasks from './pages/Tasks'
 import CareerGuide from './pages/CareerGuide'
+import Opening from './pages/opening'
+import MainLayout from './components/MainLayout'
 
 const App = () => {
   return (
@@ -26,15 +28,18 @@ const App = () => {
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/opening' element={<MainLayout><Opening /></MainLayout>} />
+
+        {/* Protected Routes with MainLayout */}
         <Route path='/path' element={<Path />} />
         <Route path='/details' element={<UserDetails />} />
-        <Route path='/resume-analyzer' element={<ResumeAnalyzer />} />
-        <Route path='/skill-analysis' element={<SkillAnalyzer />} />
-        <Route path='/dashboard' element={<Dashboard />} />
-        <Route path='/analysis' element={<Analysis />} />
-        <Route path='/habit-tracker' element={<HabitTracker />} />
-        <Route path='/tasks' element={<Tasks />} />
-        <Route path='/career-guide' element={<CareerGuide />} />
+        <Route path='/resume-analyzer' element={<MainLayout><ResumeAnalyzer /></MainLayout>} />
+        <Route path='/skill-analysis' element={<MainLayout><SkillAnalyzer /></MainLayout>} />
+        <Route path='/dashboard' element={<MainLayout><Dashboard /></MainLayout>} />
+        <Route path='/analysis' element={<MainLayout><Analysis /></MainLayout>} />
+        <Route path='/habit-tracker' element={<MainLayout><HabitTracker /></MainLayout>} />
+        <Route path='/tasks' element={<MainLayout><Tasks /></MainLayout>} />
+        <Route path='/career-guide' element={<MainLayout><CareerGuide /></MainLayout>} />
       </Routes>
     </div>
   )

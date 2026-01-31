@@ -19,7 +19,7 @@ const ForgotPassword = () => {
         setMessage({ text: '', type: '' });
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:3000/careerlens/resetotp', { email });
+            const response = await axios.post('http://127.0.0.1:3000/careerlens/resetotp', { email });
             if (response.data.success) {
                 setMessage({ text: response.data.message, type: 'success' });
                 setTimeout(() => {
@@ -46,7 +46,7 @@ const ForgotPassword = () => {
         }
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:3000/careerlens/resetpassword', {
+            const response = await axios.post('http://127.0.0.1:3000/careerlens/resetpassword', {
                 email,
                 otp: otp.join(''),
                 password: newPassword

@@ -40,7 +40,7 @@ const ResumeAnalyzer = () => {
         if (userID) formData.append('userID', userID);
 
         try {
-            const response = await fetch('http://localhost:3000/careerlens/resume/analyze', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/resume/analyze', {
                 method: 'POST',
                 body: formData,
             });
@@ -73,7 +73,7 @@ const ResumeAnalyzer = () => {
         setShowGenerateModal(true);
 
         try {
-            const response = await fetch('http://localhost:3000/careerlens/resume/generate', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/resume/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ current_resume_text: resumeText })
@@ -115,7 +115,7 @@ const ResumeAnalyzer = () => {
                 ] :
                 [...messages, newUserMsg];
 
-            const response = await fetch('http://localhost:3000/careerlens/resume/chat', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/resume/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: contextMessages })
@@ -132,29 +132,7 @@ const ResumeAnalyzer = () => {
     };
 
     return (
-        <div className="h-screen bg-[#00002E] text-white font-inter relative overflow-hidden flex flex-col selection:bg-[#F2B42D]/30">
-            {/* Background Gradients */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#F2B42D] rounded-full opacity-20 blur-[120px] pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#D7425E] rounded-full opacity-20 blur-[120px] pointer-events-none"></div>
-
-            {/* Header - Fixed */}
-            <header className="flex-none px-8 py-6 flex justify-between items-center border-b border-white/5 bg-[#00002E]/80 backdrop-blur-md relative z-20">
-                <div className="flex items-center gap-4">
-                    <Logo />
-                    <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
-                    <p className="text-gray-400 text-sm hidden sm:block">Resume Analyzer</p>
-                </div>
-
-                <button
-                    onClick={handleGenerateResume}
-                    disabled={!result || analyzing}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <FileDown size={18} className="text-[#F2B42D] group-hover:scale-110 transition-transform" />
-                    <span className="font-semibold text-sm">Generate Resume</span>
-                </button>
-            </header>
-
+        <div className="min-h-full text-white font-inter relative select-none">
             {/* Generate Modal */}
             {showGenerateModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -203,8 +181,21 @@ const ResumeAnalyzer = () => {
                 </div>
             )}
 
+            {/* Action Bar */}
+            <div className="p-4 sm:p-8 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Resume <span className="text-[#F2B42D]">Analyzer</span></h2>
+                <button
+                    onClick={handleGenerateResume}
+                    disabled={!result || analyzing}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <FileDown size={18} className="text-[#F2B42D] group-hover:scale-110 transition-transform" />
+                    <span className="font-semibold text-sm">Generate Resume</span>
+                </button>
+            </div>
+
             {/* Main Content - Scrollable Areas */}
-            <main className="flex-1 overflow-hidden relative z-10 p-4 sm:p-8">
+            <main className="flex-1 overflow-hidden relative z-10 p-4 sm:p-8 pt-0">
                 <div className="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                     {/* Left Column: Upload - Scrollable */}

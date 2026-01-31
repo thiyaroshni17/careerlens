@@ -39,7 +39,7 @@ const Register = () => {
                 password: formData.password
             };
 
-            const response = await axios.post('http://localhost:3000/careerlens/reg', payload);
+            const response = await axios.post('http://127.0.0.1:3000/careerlens/reg', payload);
 
             if (response.data.success) {
                 setMessage({ text: response.data.message, type: 'success' });

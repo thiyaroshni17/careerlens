@@ -39,7 +39,7 @@ const CareerGuide = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:3000/careerlens/analysis/get-status?userID=${userID}`, {
+            const response = await fetch(`http://127.0.0.1:3000/careerlens/analysis/get-status?userID=${userID}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -65,7 +65,7 @@ const CareerGuide = () => {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await fetch('http://localhost:3000/careerlens/analysis/analyze', {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/analysis/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

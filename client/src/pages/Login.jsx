@@ -21,7 +21,7 @@ const Login = () => {
         setMessage({ text: '', type: '' });
 
         try {
-            const response = await axios.post('http://localhost:3000/careerlens/login', {
+            const response = await axios.post('http://127.0.0.1:3000/careerlens/login', {
                 identifier: formData.email,
                 password: formData.password
             });

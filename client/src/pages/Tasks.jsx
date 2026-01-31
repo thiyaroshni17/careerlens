@@ -1,333 +1,323 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, Plus, Trash2, Check,
-    MoreVertical, Filter, ClipboardList,
-    AlertCircle, Clock, CheckCircle2,
-    Calendar as CalendarIcon
+    ArrowLeft, Plus, Trash2, Check, Sparkles,
+    ClipboardList, AlertCircle, Clock, CheckCircle2,
+    Calendar as CalendarIcon, Loader2, Brain, X, Info
 } from 'lucide-react';
 
 const Tasks = () => {
     const navigate = useNavigate();
-    const [tasks, setTasks] = useState(() => {
-        const saved = localStorage.getItem('myTasks');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
+    const [error, setError] = useState('');
     const [filter, setFilter] = useState('all');
-    const [showAddPanel, setShowAddPanel] = useState(false);
 
-    // New Task Form State
-    const [formData, setFormData] = useState({
-        title: '',
-        category: 'Academics',
-        priority: 'Medium',
-        date: new Date().toISOString().split('T')[0]
-    });
+    // Test Modal State
+    const [showTestModal, setShowTestModal] = useState(false);
+    const [activeTask, setActiveTask] = useState(null);
+    const [testLoading, setTestLoading] = useState(false);
+    const [testData, setTestData] = useState(null);
+    const [selectedAnswer, setSelectedAnswer] = useState('');
+    const [testFeedback, setTestFeedback] = useState(null);
 
-    useEffect(() => {
-        if (tasks.length === 0) {
-            initializePersonalizedTasks();
-        }
-    }, []);
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userID = user.id || user._id;
 
     useEffect(() => {
-        localStorage.setItem('myTasks', JSON.stringify(tasks));
-    }, [tasks]);
-
-    const initializePersonalizedTasks = () => {
-        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        const role = userProfile.identity?.role?.toLowerCase() || 'student';
-
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dayAfter = new Date(today);
-        dayAfter.setDate(dayAfter.getDate() + 3);
-
-        let initialTasks = [];
-        if (role.includes('student') || role.includes('learning')) {
-            initialTasks = [
-                { id: 1, title: 'Complete Mathematics-II Assignment', category: 'Academics', date: tomorrow.toISOString().split('T')[0], priority: 'High', status: 'pending' },
-                { id: 2, title: 'Revise Data Structures notes', category: 'Skills', date: today.toISOString().split('T')[0], priority: 'Medium', status: 'in-progress' },
-                { id: 3, title: 'Update Resume with new project', category: 'Placement', date: dayAfter.toISOString().split('T')[0], priority: 'High', status: 'pending' }
-            ];
+        if (userID) {
+            fetchTasks();
         } else {
-            initialTasks = [
-                { id: 1, title: 'Research new market trends', category: 'Work', date: tomorrow.toISOString().split('T')[0], priority: 'High', status: 'pending' },
-                { id: 2, title: 'Complete System Design course', category: 'Skills', date: today.toISOString().split('T')[0], priority: 'Medium', status: 'in-progress' },
-                { id: 3, title: 'Networking call with mentor', category: 'Personal', date: dayAfter.toISOString().split('T')[0], priority: 'Medium', status: 'pending' }
-            ];
+            setError('User session expired. Please log in again.');
+            setLoading(false);
         }
-        setTasks(initialTasks);
-    };
+    }, [userID]);
 
-    const handleAddTask = (e) => {
-        e.preventDefault();
-        if (!formData.title.trim()) return;
-
-        const newTask = {
-            id: Date.now(),
-            ...formData,
-            status: 'pending'
-        };
-
-        setTasks([newTask, ...tasks]);
-        setFormData({ ...formData, title: '' });
-        setShowAddPanel(false);
-    };
-
-    const toggleStatus = (id) => {
-        setTasks(prev => prev.map(task => {
-            if (task.id === id) {
-                const nextStatus = task.status === 'completed' ? 'pending' : 'completed';
-                return { ...task, status: nextStatus };
+    const fetchTasks = async () => {
+        if (!userID) return;
+        setLoading(true);
+        try {
+            const response = await fetch(`http://127.0.0.1:3000/careerlens/tasks?userID=${userID}`);
+            const data = await response.json();
+            if (data.success) {
+                setTasks(data.tasks);
             }
-            return task;
-        }));
-    };
-
-    const deleteTask = (id) => {
-        if (window.confirm('Delete this task?')) {
-            setTasks(prev => prev.filter(t => t.id !== id));
+        } catch (err) {
+            setError('Neural link disconnected. Check your connection.');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const filteredTasks = tasks.filter(t =>
-        filter === 'all' ? true : t.status === filter
-    );
+    const generateAIPlan = async () => {
+        setGenerating(true);
+        setError('');
+        try {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/tasks/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userID })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setTasks(data.tasks);
+            } else {
+                setError(data.message || 'AI synthesis failed.');
+            }
+        } catch (err) {
+            setError('Neural link error. Connection unstable.');
+        } finally {
+            setGenerating(false);
+        }
+    };
 
-    const completedCount = tasks.filter(t => t.status === 'completed').length;
-    const totalCount = tasks.length;
-    const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const handleCheckClick = async (task) => {
+        setActiveTask(task);
+        setShowTestModal(true);
+        setTestLoading(true);
+        setTestData(null);
+        setSelectedAnswer('');
+        setTestFeedback(null);
 
-    const getPriorityStyles = (priority) => {
-        switch (priority) {
-            case 'High': return 'bg-red-500/10 text-red-500 border-red-500/20';
-            case 'Medium': return 'bg-[#F2B42D]/10 text-[#F2B42D] border-[#F2B42D]/20';
-            case 'Low': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-            default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+        try {
+            const response = await fetch(`http://127.0.0.1:3000/careerlens/tasks/test/${task._id}`);
+            const data = await response.json();
+            if (data.success) {
+                setTestData(data.test);
+            } else {
+                setError(data.message || 'Failed to load certification test.');
+            }
+        } catch (err) {
+            setError('Test generation failed.');
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
+    const submitTest = async () => {
+        if (!selectedAnswer) return;
+        setTestLoading(true);
+        try {
+            const response = await fetch('http://127.0.0.1:3000/careerlens/tasks/submit-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId: activeTask._id, answer: selectedAnswer })
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (data.passed) {
+                    setTestFeedback({ type: 'success', message: data.message });
+                    setTimeout(() => {
+                        setTasks(prev => prev.filter(t => t._id !== activeTask._id));
+                        setShowTestModal(false);
+                    }, 2000);
+                } else {
+                    setTestFeedback({ type: 'error', message: data.message, explanation: data.explanation });
+                }
+            }
+        } catch (err) {
+            setError('Verification linked failed.');
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
+    const getCategoryStyles = (cat) => {
+        switch (cat?.toLowerCase()) {
+            case 'career': return { color: '#F2B42D', bg: 'bg-[#F2B42D]/10', border: 'border-[#F2B42D]/20' };
+            case 'skill': return { color: '#48A8E2', bg: 'bg-[#48A8E2]/10', border: 'border-[#48A8E2]/20' };
+            case 'social': return { color: '#D7425E', bg: 'bg-[#D7425E]/10', border: 'border-[#D7425E]/20' };
+            case 'resume': return { color: '#59ABA9', bg: 'bg-[#59ABA9]/10', border: 'border-[#59ABA9]/20' };
+            default: return { color: '#ffffff', bg: 'bg-white/10', border: 'border-white/20' };
         }
     };
 
     return (
-        <div className="bg-[#00002E] min-h-screen font-display text-white relative overflow-x-hidden p-6 md:p-10 flex flex-col items-center selection:bg-[#F2B42D] selection:text-black">
-            {/* MATCHING GRADIENTS FROM DASHBOARD */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#F2B42D] rounded-full opacity-10 blur-[120px] pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#D7425E] rounded-full opacity-10 blur-[120px] pointer-events-none"></div>
-
-            <div className="w-full max-w-5xl relative z-10 space-y-8 pb-20">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="p-6 md:p-10 relative">
+            <div className="w-full max-w-5xl relative z-10 space-y-10 pb-20 animate-in fade-in duration-700 mx-auto">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div className="space-y-4">
+                        <h1 className="text-5xl font-black tracking-tight text-white leading-tight">
+                            Strategic <span className="text-[#F2B42D]">Tasks</span>
+                        </h1>
+                        <p className="text-gray-400 font-medium max-w-lg">Actionable development steps synthesized from your professional analysis. Pass the AI verification test to complete each milestone.</p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => navigate('/dashboard')}
-                            className="text-sm font-medium text-gray-400 hover:text-[#F2B42D] transition-all flex items-center gap-2 group"
+                            onClick={generateAIPlan}
+                            disabled={generating || loading}
+                            className="bg-white/5 border border-white/10 hover:border-[#F2B42D]/50 text-white font-black px-6 py-3 rounded-2xl flex items-center gap-3 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            <ArrowLeft className="group-hover:-translate-x-1 transition-transform" size={18} />
-                            Back to Dashboard
+                            {generating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles className="text-[#F2B42D]" size={18} />}
+                            {tasks.length > 0 ? "Regenerate Plan" : "Generate AI Plan"}
                         </button>
-                        <h1 className="text-4xl font-black tracking-tight text-white">Tasks</h1>
-                        <p className="text-gray-400 font-medium">Your personalized action plan for progress.</p>
-                    </div>
-
-                    {/* Completion Pill */}
-                    <div className="bg-[#00002E]/80 backdrop-blur-xl border border-[#ffffff14] px-6 py-3 rounded-2xl flex items-center gap-4 shadow-xl">
-                        <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-wider">Completion</span>
-                            <span className="text-[#F2B42D] font-black text-xl">{completedCount}/{totalCount}</span>
-                        </div>
-                        <div className="relative w-12 h-12 flex items-center justify-center">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                                <circle
-                                    cx="24"
-                                    cy="24"
-                                    r="20"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                    fill="transparent"
-                                    className="text-[#F2B42D] transition-all duration-1000 ease-out"
-                                    strokeDasharray="125.6"
-                                    strokeDashoffset={125.6 - (125.6 * progress) / 100}
-                                />
-                            </svg>
-                            <span className="absolute text-[10px] font-black text-white">{progress}%</span>
-                        </div>
                     </div>
                 </div>
 
-                {/* Filters & Add Button */}
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="bg-[#00002E]/60 backdrop-blur-xl border border-[#ffffff14] p-1.5 rounded-xl flex overflow-x-auto no-scrollbar gap-1 flex-1 shadow-lg">
-                        {['all', 'pending', 'in-progress', 'completed'].map((status) => (
-                            <button
-                                key={status}
-                                onClick={() => setFilter(status)}
-                                className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${filter === status
-                                        ? 'bg-[#F2B42D] text-[#00002E] shadow-lg shadow-[#F2B42D]/20'
-                                        : 'text-gray-500 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {status.replace('-', ' ')}
-                            </button>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={() => setShowAddPanel(!showAddPanel)}
-                        className="bg-[#F2B42D] hover:bg-[#D99E1F] text-[#00002E] font-black px-8 py-3 rounded-xl shadow-xl shadow-[#F2B42D]/20 flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0"
-                    >
-                        <Plus size={20} />
-                        Add New Task
-                    </button>
-                </div>
-
-                {/* Add Task Panel */}
-                {showAddPanel && (
-                    <div className="bg-[#00002E]/80 backdrop-blur-xl border border-[#ffffff14] rounded-2xl p-8 shadow-2xl border-l-[6px] border-l-[#F2B42D] animate-in slide-in-from-top-4 duration-300">
-                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Create New Task</h3>
-                        <form onSubmit={handleAddTask} className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                            <div className="md:col-span-4 space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">Task Title</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full bg-black/40 border border-[#ffffff14] rounded-xl px-4 py-3 text-white outline-none focus:border-[#F2B42D] transition-all"
-                                    placeholder="e.g. Finish Python module"
-                                />
+                {/* Task List Container */}
+                <div className="bg-[#00003E]/40 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-3xl overflow-hidden min-h-[500px] p-2">
+                    <div className="p-6 md:p-10 space-y-4">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-[400px] space-y-4">
+                                <Loader2 className="animate-spin text-[#F2B42D]" size={40} />
+                                <p className="text-gray-500 font-black uppercase tracking-widest text-[10px]">Loading Strategy...</p>
                             </div>
-                            <div className="md:col-span-3 space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">Category</label>
-                                <select
-                                    value={formData.category}
-                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                    className="w-full bg-black/40 border border-[#ffffff14] rounded-xl px-4 py-3 text-white outline-none appearance-none cursor-pointer"
+                        ) : tasks.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-6">
+                                <div className="size-20 bg-white/5 rounded-[30px] flex items-center justify-center text-gray-700 border border-white/5">
+                                    <Brain size={40} />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-white">Your Action Plan is Empty</h3>
+                                    <p className="text-gray-500 text-sm max-w-sm mx-auto">Generate a new set of strategic tasks based on your latest career and skill reports.</p>
+                                </div>
+                                <button
+                                    onClick={generateAIPlan}
+                                    className="bg-[#F2B42D] text-[#00002E] font-black px-10 py-4 rounded-2xl shadow-2xl shadow-[#F2B42D]/20 hover:scale-105 transition-all"
                                 >
-                                    {['Academics', 'Skills', 'Placement', 'Work', 'Personal'].map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
+                                    Initiate AI Synthesis
+                                </button>
                             </div>
-                            <div className="md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">Priority</label>
-                                <select
-                                    value={formData.priority}
-                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                                    className="w-full bg-black/40 border border-[#ffffff14] rounded-xl px-4 py-3 text-white outline-none appearance-none cursor-pointer"
-                                >
-                                    {['High', 'Medium', 'Low'].map(prio => (
-                                        <option key={prio} value={prio}>{prio}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="md:col-span-3 space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">Due Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    className="w-full bg-black/40 border border-[#ffffff14] rounded-xl px-4 py-3 text-white outline-none cursor-pointer"
-                                />
-                            </div>
-                            <div className="md:col-span-12 flex justify-end gap-3 pt-2">
-                                <button type="button" onClick={() => setShowAddPanel(false)} className="px-6 py-2 text-gray-500 font-bold hover:text-white transition-all text-sm">Cancel</button>
-                                <button type="submit" className="bg-[#F2B42D]/10 hover:bg-[#F2B42D]/20 text-[#F2B42D] border border-[#F2B42D]/30 font-black px-8 py-2 rounded-xl transition-all text-sm">Save Task</button>
-                            </div>
-                        </form>
-                    </div>
-                )}
-
-                {/* Tasks List */}
-                <div className="bg-[#00002E]/60 backdrop-blur-xl border border-[#ffffff14] rounded-3xl shadow-2xl overflow-hidden min-h-[400px]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-white/5 text-[10px] text-gray-500 uppercase tracking-[0.2em] font-black border-b border-[#ffffff14]">
-                                <tr>
-                                    <th className="px-8 py-5 w-16 text-center">Done?</th>
-                                    <th className="px-8 py-5">Task Name</th>
-                                    <th className="px-8 py-5 hidden md:table-cell">Category</th>
-                                    <th className="px-8 py-5 hidden sm:table-cell">Due Date</th>
-                                    <th className="px-8 py-5">Priority</th>
-                                    <th className="px-8 py-5 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#ffffff14]">
-                                {filteredTasks.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" className="py-20 text-center">
-                                            <div className="flex flex-col items-center justify-center space-y-4">
-                                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-gray-600">
-                                                    <ClipboardList size={32} />
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {tasks.map((task, idx) => {
+                                    const styles = getCategoryStyles(task.category);
+                                    return (
+                                        <div
+                                            key={task._id}
+                                            className="group bg-white/[0.03] border border-white/5 hover:border-white/10 rounded-3xl p-6 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+                                            style={{ animationDelay: `${idx * 100}ms` }}
+                                        >
+                                            <div className="flex items-start gap-6">
+                                                <div
+                                                    onClick={() => handleCheckClick(task)}
+                                                    className="size-10 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90"
+                                                    style={{ borderColor: `${styles.color}40`, backgroundColor: 'rgba(0,0,0,0.2)' }}
+                                                >
+                                                    <div className="size-4 rounded-full" style={{ backgroundColor: `${styles.color}20` }}></div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <h3 className="text-white font-bold text-lg">All caught up!</h3>
-                                                    <p className="text-gray-500 text-sm">No tasks found matching your filters.</p>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${styles.bg} ${styles.border}`} style={{ color: styles.color }}>
+                                                            {task.category}
+                                                        </span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">{task.priority} Priority</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-white group-hover:text-[#F2B42D] transition-colors">{task.title}</h3>
                                                 </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredTasks.map((task) => {
-                                        const isDone = task.status === 'completed';
-                                        const dateLabel = new Date(task.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-                                        return (
-                                            <tr key={task.id} className="group hover:bg-white/[0.02] transition-colors relative">
-                                                <td className="px-8 py-5 relative z-10">
-                                                    <div
-                                                        onClick={() => toggleStatus(task.id)}
-                                                        className={`w-6 h-6 rounded-lg border-2 cursor-pointer flex items-center justify-center transition-all duration-300 mx-auto ${isDone
-                                                                ? 'bg-[#F2B42D] border-[#F2B42D] shadow-[0_0_10px_rgba(242,180,45,0.4)]'
-                                                                : 'bg-black/20 border-gray-600 hover:border-[#F2B42D]'
-                                                            }`}
-                                                    >
-                                                        <Check size={14} className={`text-[#00002E] font-black transition-all ${isDone ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-5">
-                                                    <span className={`font-bold block transition-all ${isDone ? 'line-through text-gray-600 opacity-60' : 'text-white'}`}>
-                                                        {task.title}
-                                                    </span>
-                                                    <span className="md:hidden text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1.5 block">
-                                                        {task.category} • {dateLabel}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5 hidden md:table-cell">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-white/5 px-2.5 py-1 rounded border border-[#ffffff14]">
-                                                        {task.category}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5 hidden sm:table-cell">
-                                                    <div className="flex items-center gap-2 text-sm text-gray-400 font-mono">
-                                                        <CalendarIcon size={14} className="text-gray-600" />
-                                                        {dateLabel}
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-5">
-                                                    <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded border ${getPriorityStyles(task.priority)}`}>
-                                                        {task.priority}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5 text-right">
-                                                    <button
-                                                        onClick={() => deleteTask(task.id)}
-                                                        className="text-gray-600 hover:text-[#D7425E] transition-colors p-2 opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                            <button
+                                                onClick={() => handleCheckClick(task)}
+                                                className="bg-white/5 hover:bg-white/10 border border-white/5 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                            >
+                                                Verify Task
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Info Tip */}
+                <div className="flex items-center gap-3 px-10 py-6 bg-white/5 border border-white/10 rounded-[30px] opacity-60">
+                    <div className="size-8 rounded-xl bg-[#48A8E2]/20 flex items-center justify-center text-[#48A8E2]">
+                        <Info size={16} />
+                    </div>
+                    <p className="text-xs text-gray-400 font-medium">Verify completion by passing a quick modular test tailored to each specific growth task.</p>
+                </div>
             </div>
+
+            {/* AI Test Modal */}
+            {showTestModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-2xl bg-black/60">
+                    <div className="bg-[#00003E] border border-white/10 w-full max-w-xl max-h-[90vh] rounded-[40px] shadow-3xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                        {/* Modal Header */}
+                        <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-4">
+                                <div className="size-12 rounded-2xl bg-[#F2B42D]/10 flex items-center justify-center text-[#F2B42D]">
+                                    <Brain size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-white">Verification Test</h3>
+                                    <p className="text-xs text-gray-500 font-medium">{activeTask?.title}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowTestModal(false)} className="text-gray-500 hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-10 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+                            {testLoading ? (
+                                <div className="h-60 flex flex-col items-center justify-center space-y-4">
+                                    <Loader2 className="animate-spin text-[#F2B42D]" size={30} />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Synthesizing Challenge...</p>
+                                </div>
+                            ) : testData ? (
+                                <div className="space-y-8">
+                                    <p className="text-lg font-bold text-white">{testData.question}</p>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {testData.options.map((opt, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => !testFeedback && setSelectedAnswer(opt)}
+                                                className={`w-full text-left p-5 rounded-2xl border-2 transition-all font-medium flex justify-between items-center group
+                                                    ${selectedAnswer === opt ? 'border-[#F2B42D] bg-[#F2B42D]/5 text-white' : 'border-white/5 hover:border-white/20 bg-black/20 text-gray-400'}
+                                                    ${testFeedback?.type === 'success' && testData.correctAnswer === opt ? 'border-emerald-500 bg-emerald-500/10' : ''}
+                                                `}
+                                            >
+                                                <span>{opt}</span>
+                                                <div className={`size-5 rounded-full border-2 transition-all ${selectedAnswer === opt ? 'border-[#F2B42D] scale-110' : 'border-white/10'}`}>
+                                                    {selectedAnswer === opt && <div className="size-full rounded-full border-[5px] border-[#00003E] bg-[#F2B42D]" />}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {testFeedback && (
+                                        <div className={`p-6 rounded-3xl border animate-in slide-in-from-bottom-2 duration-300 ${testFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
+                                            <div className="flex items-center gap-3 mb-2">
+                                                {testFeedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                                <p className="font-black uppercase tracking-widest text-[10px]">{testFeedback.type === 'success' ? 'Verification Passed' : 'Verification Failed'}</p>
+                                            </div>
+                                            <p className="text-sm font-medium leading-relaxed">{testFeedback.message}</p>
+                                            {testFeedback.explanation && <p className="mt-3 text-[11px] font-bold text-white/40">Hint: {testFeedback.explanation}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Modal Footer */}
+                        {!testLoading && testData && (
+                            <div className="px-10 py-8 bg-black/20 border-t border-white/5 flex justify-end gap-4 shrink-0">
+                                <button
+                                    onClick={() => setShowTestModal(false)}
+                                    className="px-6 py-2 text-gray-500 font-bold hover:text-white transition-all text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                {testFeedback?.type !== 'success' && (
+                                    <button
+                                        onClick={submitTest}
+                                        disabled={!selectedAnswer}
+                                        className="bg-[#F2B42D] disabled:opacity-50 text-[#00002E] font-black px-10 py-2 rounded-xl transition-all shadow-xl shadow-[#F2B42D]/20 active:scale-95"
+                                    >
+                                        Submit Answer
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

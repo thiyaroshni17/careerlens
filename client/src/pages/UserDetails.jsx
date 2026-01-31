@@ -119,9 +119,9 @@ const UserDetails = () => {
 
         try {
             let endpoint = '';
-            if (type === 'school') endpoint = 'http://localhost:3000/careerlens/student/add';
-            if (type === 'college') endpoint = 'http://localhost:3000/careerlens/collegestudent/register';
-            if (type === 'professional') endpoint = 'http://localhost:3000/careerlens/industryworker/create';
+            if (type === 'school') endpoint = 'http://127.0.0.1:3000/careerlens/student/add';
+            if (type === 'college') endpoint = 'http://127.0.0.1:3000/careerlens/collegestudent/register';
+            if (type === 'professional') endpoint = 'http://127.0.0.1:3000/careerlens/industryworker/create';
 
             const token = localStorage.getItem('token');
             const config = {
