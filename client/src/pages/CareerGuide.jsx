@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Brain, Compass, ArrowLeft, LayoutDashboard, AlertCircle, Loader2, FileText, Github, Linkedin, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Brain, Compass, ArrowLeft, LayoutDashboard, AlertCircle, Loader2, FileText, Github, Linkedin, CheckCircle2, Activity, Check, Zap, Search } from 'lucide-react';
 import Logo from '../components/Logo';
 import BackgroundShapes from '../components/BackgroundShapes';
 
@@ -30,15 +30,16 @@ const CareerGuide = () => {
     const fetchStatus = async () => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const token = localStorage.getItem('token');
+        const userID = user.id || user._id;
 
-        if (!user._id) {
+        if (!userID) {
             setError("Session expired. Please login again.");
             setLoading(false);
             return;
         }
 
         try {
-            const response = await fetch(`http://localhost:3000/careerlens/analysis/get-status?userID=${user._id}`, {
+            const response = await fetch(`http://localhost:3000/careerlens/analysis/get-status?userID=${userID}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -70,13 +71,25 @@ const CareerGuide = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ userID: user._id, module: moduleType })
+                body: JSON.stringify({ userID: user.id || user._id, module: moduleType })
             });
 
             const data = await response.json();
             if (data.success) {
-                await fetchStatus();
+                // Locally update state for immediate feedback
+                setHubStatus(prev => ({
+                    ...prev,
+                    status: { ...prev.status, [moduleType]: 'completed' },
+                    data: {
+                        ...prev.data,
+                        [moduleType]: moduleType === 'skill' || moduleType === 'resume'
+                            ? JSON.parse(data.analysis || '{}')
+                            : { html: data.analysis, generatedAt: new Date() }
+                    }
+                }));
                 setActiveModule(moduleType);
+                // Also trigger background fetch to ensure everything is synced
+                fetchStatus();
             } else {
                 throw new Error(data.message);
             }
@@ -95,7 +108,7 @@ const CareerGuide = () => {
             icon: Sparkles,
             color: '#F2B42D',
             status: hubStatus?.status?.career,
-            hasContent: !!hubStatus?.data?.career
+            hasContent: !!(hubStatus?.data?.career?.html || hubStatus?.data?.career)
         },
         {
             id: 'skill',
@@ -114,7 +127,7 @@ const CareerGuide = () => {
             icon: Linkedin,
             color: '#D7425E',
             status: hubStatus?.status?.social,
-            hasContent: !!hubStatus?.data?.social
+            hasContent: !!(hubStatus?.data?.social?.html || hubStatus?.data?.social)
         },
         {
             id: 'resume',
@@ -129,26 +142,87 @@ const CareerGuide = () => {
     ];
 
     const renderReport = () => {
+        const reportData = hubStatus?.data?.[activeModule];
+
+        if (!activeModule || !reportData) {
+            return (
+                <div className="flex flex-col items-center justify-center py-20 text-center animate-pulse">
+                    <div className="size-16 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6">
+                        <AlertCircle className="text-red-500" size={32} />
+                    </div>
+                    <h3 className="text-xl font-black text-white mb-2">Analysis Data Missing</h3>
+                    <p className="text-gray-400 max-w-xs mx-auto">We couldn't retrieve the specific metrics for this report. Please attempt a regeneration.</p>
+                </div>
+            );
+        }
+
+        const glassBox = "bg-white/5 border border-white/10 backdrop-blur-sm rounded-3xl p-6 transition-all hover:bg-white/10 hover:border-white/20";
+
         if (activeModule === 'skill') {
             const data = hubStatus?.data?.skill;
             return (
-                <div className="space-y-6">
-                    <h2 className="text-3xl font-black text-white">Skill Insight Report</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                            <p className="text-xs text-gray-400 font-bold uppercase">Overall Score</p>
-                            <p className="text-2xl font-black text-[#48A8E2]">{data.overallScore}%</p>
+                <div className="space-y-8 animate-fade-in">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
+                        <div>
+                            <h2 className="text-4xl font-black text-white tracking-tight">Skill Intelligence <span className="text-[#48A8E2]">Report</span></h2>
+                            <p className="text-gray-400 mt-2 font-medium">Detailed cognitive & technical performance breakdown.</p>
                         </div>
-                        <div className="col-span-2 bg-white/5 p-4 rounded-2xl border border-white/10">
-                            <p className="text-xs text-gray-400 font-bold uppercase">Target Role</p>
-                            <p className="text-lg font-black text-white">{data.targetRole}</p>
+                        <div className="flex items-center gap-4 bg-[#48A8E2]/10 border border-[#48A8E2]/20 px-6 py-4 rounded-2xl">
+                            <div className="size-10 rounded-full bg-[#48A8E2]/20 flex items-center justify-center text-[#48A8E2]">
+                                <Activity size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-[#48A8E2] font-black uppercase tracking-widest">Overall Fitness</p>
+                                <p className="text-2xl font-black text-white leading-none">{data.overallScore}%</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold text-[#F2B42D]">Key Strengths</h3>
-                        <ul className="list-disc list-inside space-y-1 text-gray-300">
-                            {data.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                        </ul>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className={`${glassBox} md:col-span-2 flex flex-col justify-center`}>
+                            <p className="text-xs text-gray-500 font-black uppercase tracking-tighter mb-2">Identified Target Role</p>
+                            <p className="text-2xl font-black text-[#48A8E2]">{data.targetRole}</p>
+                        </div>
+                        <div className={`${glassBox} flex flex-col justify-center`}>
+                            <p className="text-xs text-gray-500 font-black uppercase tracking-tighter mb-2">Assessment Date</p>
+                            <p className="text-xl font-black text-white">{new Date(data.aiGeneratedAt || Date.now()).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <span className="w-8 h-1 bg-[#F2B42D] rounded-full"></span>
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Core Strengths</h3>
+                            </div>
+                            <div className="grid gap-3">
+                                {data.strengths?.map((s, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-[#F2B42D]/30 transition-all">
+                                        <div className="mt-1 size-5 rounded-full bg-[#F2B42D]/20 flex items-center justify-center text-[#F2B42D] group-hover:bg-[#F2B42D] group-hover:text-black transition-all">
+                                            <Check size={12} strokeWidth={4} />
+                                        </div>
+                                        <p className="text-gray-300 text-sm font-medium leading-relaxed">{s}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <span className="w-8 h-1 bg-[#D7425E] rounded-full"></span>
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Growth Roadmap</h3>
+                            </div>
+                            <div className="grid gap-3">
+                                {data.improvementRoadmap?.map((s, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-[#D7425E]/30 transition-all">
+                                        <div className="mt-1 size-5 rounded-full bg-[#D7425E]/20 flex items-center justify-center text-[#D7425E] group-hover:bg-[#D7425E] group-hover:text-white transition-all">
+                                            <Zap size={12} fill="currentColor" />
+                                        </div>
+                                        <p className="text-gray-300 text-sm font-medium leading-relaxed">{s}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -157,37 +231,75 @@ const CareerGuide = () => {
         if (activeModule === 'resume') {
             const data = hubStatus?.data?.resume;
             return (
-                <div className="space-y-6">
-                    <h2 className="text-3xl font-black text-white">Resume Analysis Report</h2>
-                    <div className="flex items-center gap-6">
-                        <div className="size-24 rounded-3xl border-4 border-[#59ABA9]/50 flex items-center justify-center bg-[#59ABA9]/10">
-                            <span className="text-3xl font-black text-white">{data.score}</span>
-                        </div>
-                        <div>
-                            <p className="text-gray-400 font-medium">ATS Compatibility: <span className="text-[#59ABA9] font-black">{data.ats_compatibility}</span></p>
-                            <p className="text-white text-sm mt-2 leading-relaxed max-w-lg">{data.summary}</p>
-                        </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="text-lg font-bold text-[#D7425E] mb-4">Key Issues</h3>
-                            <ul className="space-y-2">
-                                {data.key_issues.map((s, i) => <li key={i} className="flex gap-2 text-sm text-gray-300"><AlertCircle size={16} className="text-[#D7425E] shrink-0" /> {s}</li>)}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-[#59ABA9] mb-4">Missing Keywords</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {data.missing_keywords.map((s, i) => <span key={i} className="px-3 py-1 bg-[#59ABA9]/10 border border-[#59ABA9]/20 rounded-full text-xs font-bold text-[#59ABA9]">{s}</span>)}
+                <div className="space-y-8 animate-fade-in">
+                    <div className="flex flex-col md:flex-row md:items-center gap-8 bg-gradient-to-br from-[#59ABA9]/10 to-transparent p-8 rounded-[40px] border border-[#59ABA9]/20">
+                        <div className="relative size-32 shrink-0">
+                            <svg className="size-full" viewBox="0 0 36 36">
+                                <path className="stroke-white/5" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path className="stroke-[#59ABA9]" strokeDasharray={`${data.score}, 100`} strokeWidth="3" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-black text-white">{data.score}</span>
+                                <span className="text-[10px] text-[#59ABA9] font-black uppercase tracking-widest">ATS Score</span>
                             </div>
                         </div>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-3xl font-black text-white tracking-tight">Resume <span className="text-[#59ABA9]">Insights</span></h2>
+                                <span className="px-3 py-1 bg-[#59ABA9]/20 text-[#59ABA9] border border-[#59ABA9]/30 rounded-full text-[10px] font-black uppercase">{data.ats_compatibility}</span>
+                            </div>
+                            <p className="text-gray-300 text-sm leading-relaxed font-medium bg-black/20 p-4 rounded-2xl border border-white/5">{data.summary}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <section className="space-y-4">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <AlertCircle size={20} className="text-[#D7425E]" /> Critical Issues
+                            </h3>
+                            <div className="space-y-3">
+                                {data.key_issues?.map((s, i) => (
+                                    <div key={i} className="p-4 bg-[#D7425E]/5 border border-[#D7425E]/10 rounded-2xl text-xs font-semibold text-gray-400 leading-relaxed flex gap-3">
+                                        <span className="size-1.5 rounded-full bg-[#D7425E] mt-1.5 shrink-0" />
+                                        {s}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                        <section className="space-y-4">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <Search size={20} className="text-[#59ABA9]" /> Keyword Alignment
+                            </h3>
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                {data.missing_keywords?.map((s, i) => (
+                                    <span key={i} className="px-4 py-2 bg-[#59ABA9]/10 border border-[#59ABA9]/20 rounded-xl text-xs font-bold text-[#59ABA9] hover:bg-[#59ABA9] hover:text-black transition-all cursor-default">
+                                        {s}
+                                    </span>
+                                ))}
+                            </div>
+                        </section>
                     </div>
                 </div>
             );
         }
 
         const html = activeModule === 'social' ? hubStatus?.data?.social?.html : hubStatus?.data?.career?.html;
-        return <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: html }} />;
+        return (
+            <div className="report-html-container animate-fade-in px-4">
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .report-html-container h1, .report-html-container h2 { color: #F2B42D; font-weight: 900; font-size: 1.875rem; margin-top: 2.5rem; margin-bottom: 1.25rem; letter-spacing: -0.025em; border-bottom: 1px solid rgba(242,180,45,0.2); padding-bottom: 0.5rem; }
+                    .report-html-container h3 { color: #48A8E2; font-weight: 800; font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.75rem; }
+                    .report-html-container p { color: #9ca3af; margin-bottom: 1.25rem; line-height: 1.8; font-size: 0.95rem; font-weight: 500; }
+                    .report-html-container ul { list-style-type: none; padding-left: 0.5rem; margin-bottom: 2rem; }
+                    .report-html-container li { color: #d1d5db; position: relative; padding-left: 1.75rem; margin-bottom: 0.75rem; font-size: 0.95rem; font-weight: 500; border-left: 2px solid #ffffff0d; margin-left: 0.5rem; }
+                    .report-html-container li strong { color: #ffffff; font-weight: 800; }
+                    .report-html-container li::before { content: "→"; position: absolute; left: 0; color: #48A8E2; font-weight: 900; opacity: 0.6; }
+                    .report-html-container hr { border: none; height: 1px; background: linear-gradient(to right, #ffffff14, transparent); margin: 3rem 0; }
+                `}} />
+                <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: html }} />
+            </div>
+        );
     };
 
     if (loading) return (
@@ -279,7 +391,8 @@ const CareerGuide = () => {
                                                         <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest opacity-40">Pending</span>
                                                     )}
 
-                                                    <div className={`size-7 rounded-full flex items-center justify-center transition-all ${mod.hasContent ? 'bg-white/10 text-white' : `bg-[${mod.color}]/20 text-[${mod.color}]`}`}>
+                                                    <div className={`size-7 rounded-full flex items-center justify-center transition-all ${mod.hasContent ? 'bg-white/10 text-white' : ''}`}
+                                                        style={!mod.hasContent ? { backgroundColor: `${mod.color}20`, color: mod.color } : {}}>
                                                         <Compass size={14} className={mod.hasContent ? '' : 'animate-spin-slow'} />
                                                     </div>
                                                 </div>

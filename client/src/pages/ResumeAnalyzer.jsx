@@ -32,8 +32,12 @@ const ResumeAnalyzer = () => {
         if (!file) return;
 
         setAnalyzing(true);
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userID = user.id || user._id;
+
         const formData = new FormData();
         formData.append('resume', file);
+        if (userID) formData.append('userID', userID);
 
         try {
             const response = await fetch('http://localhost:3000/careerlens/resume/analyze', {

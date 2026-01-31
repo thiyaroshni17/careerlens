@@ -88,50 +88,78 @@ const getCareerStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: "userID is required" });
         }
 
-        // Fetch all reports with error handling for each
-        let career = null;
-        let skill = null;
-        let resume = null;
+        // Initialize default response structure
+        const response = {
+            success: true,
+            status: {
+                career: 'pending',
+                social: 'pending',
+                skill: 'pending',
+                resume: 'pending'
+            },
+            data: {
+                career: null,
+                social: null,
+                skill: null,
+                resume: null
+            }
+        };
 
+        // Fetch all reports with error handling for each
         try {
-            career = await CareerReport.findOne({ userID });
+            const career = await CareerReport.findOne({ userID });
             console.log("🔵 Career report found:", !!career);
+            if (career) {
+                response.status.career = career.careerAnalysis?.html ? 'completed' : 'pending';
+                response.status.social = career.socialAnalysis?.html ? 'completed' : 'pending';
+                response.data.career = career.careerAnalysis || null;
+                response.data.social = career.socialAnalysis || null;
+            }
         } catch (err) {
             console.error("❌ Error fetching CareerReport:", err.message);
         }
 
         try {
-            skill = await Assessment.findOne({ userID }).sort({ createdAt: -1 });
+            const skill = await Assessment.findOne({ userID }).sort({ createdAt: -1 });
             console.log("🔵 Skill assessment found:", !!skill);
+            if (skill) {
+                response.status.skill = skill.finalReport ? 'completed' : 'pending';
+                response.data.skill = skill.finalReport || null;
+            }
         } catch (err) {
             console.error("❌ Error fetching Assessment:", err.message);
         }
 
         try {
-            resume = await ResumeReport.findOne({ userID }).sort({ generatedAt: -1 });
+            const resume = await ResumeReport.findOne({ userID }).sort({ generatedAt: -1 });
             console.log("🔵 Resume report found:", !!resume);
+            if (resume) {
+                response.status.resume = 'completed';
+                response.data.resume = resume;
+            }
         } catch (err) {
             console.error("❌ Error fetching ResumeReport:", err.message);
         }
 
-        res.json({
+        res.json(response);
+    } catch (error) {
+        console.error("❌ getCareerStatus Critical Error:", error);
+        // Return a safe default response instead of crashing
+        res.status(200).json({
             success: true,
             status: {
-                career: career?.careerAnalysis ? 'completed' : 'pending',
-                social: career?.socialAnalysis ? 'completed' : 'pending',
-                skill: skill ? 'completed' : 'pending',
-                resume: resume ? 'completed' : 'pending'
+                career: 'pending',
+                social: 'pending',
+                skill: 'pending',
+                resume: 'pending'
             },
             data: {
-                career: career?.careerAnalysis || null,
-                social: career?.socialAnalysis || null,
-                skill: skill?.finalReport || null,
-                resume: resume || null
+                career: null,
+                social: null,
+                skill: null,
+                resume: null
             }
         });
-    } catch (error) {
-        console.error("❌ getCareerStatus Error:", error);
-        res.status(500).json({ success: false, message: error.message });
     }
 };
 
